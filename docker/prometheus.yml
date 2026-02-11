@@ -1,0 +1,32 @@
+# Configuration Prometheus pour les tests
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration (optionnel)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Règles d'alerte (optionnel)
+rule_files: []
+
+# Configuration des scrapes
+scrape_configs:
+  # Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - métriques système
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Pushgateway - métriques custom
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']

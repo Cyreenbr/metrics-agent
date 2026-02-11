@@ -1,0 +1,45 @@
+# Règles pour les métriques de test Pushgateway
+
+rules:
+  test_spike_metric:
+    thresholds:
+      warning: 200
+      critical: 400
+    detectors:
+      - spike_detector
+      - statistical_detector
+      - threshold_detector
+    severity: "high"
+    description: "Métrique de test avec spikes"
+    
+  test_threshold_metric:
+    thresholds:
+      warning: 100
+      critical: 200
+    detectors:
+      - threshold_detector
+      - pattern_detector
+    severity: "high"
+    description: "Métrique de test pour seuils"
+    
+  test_normal_metric:
+    thresholds:
+      warning: 150
+      critical: 200
+    detectors:
+      - statistical_detector
+      - spike_detector
+    severity: "medium"
+    description: "Métrique normale de référence"
+    
+  test_pattern_metric:
+    detectors:
+      - pattern_detector
+      - statistical_detector
+    severity: "medium"
+    description: "Métrique avec pattern sinusoïdal"
+
+global_settings:
+  min_data_points: 3
+  confidence_threshold: 0.5
+  aggregation_window: 30

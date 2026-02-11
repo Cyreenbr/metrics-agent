@@ -1,0 +1,74 @@
+# Configuration pour tester avec Pushgateway
+# Remplacez config/config.yaml par ce fichier
+
+prometheus:
+  url: "http://localhost:9090"
+  timeout: 30
+  verify_ssl: false
+
+agent:
+  name: "metrics-agent"
+  check_interval: 20  # Vérification toutes les 20 secondes
+  lookback_window: 180  # 3 minutes de lookback
+  
+logging:
+  level: "INFO"
+  format: "text"
+  file: "logs/metrics-agent.log"
+  rotation: "100 MB"
+  retention: "30 days"
+
+orchestrator:
+  endpoint: "http://localhost:8000/api/anomalies"
+  timeout: 10
+  retry_attempts: 3
+
+# Métriques custom du Pushgateway
+metrics:
+  # Métrique normale (devrait rarement alerter)
+  - name: "test_normal_metric"
+    type: "gauge"
+    labels: ["type"]
+    
+  # Métrique avec spikes (va détecter les pics)
+  - name: "test_spike_metric"
+    type: "gauge"
+    labels: ["type"]
+    
+  # Métrique dépassant seuil
+  - name: "test_threshold_metric"
+    type: "gauge"
+    labels: ["type"]
+    
+  # Métrique avec pattern
+  - name: "test_pattern_metric"
+    type: "gauge"
+    labels: ["type"]
+    
+  # Counter de requêtes
+  - name: "test_requests_total"
+    type: "counter"
+    labels: ["status", "method"]
+
+detectors:
+  spike_detector:
+    enabled: true
+    sensitivity: 0.9
+    min_change_percent: 100  # Détecte les doublements ou plus
+    
+  statistical_detector:
+    enabled: true
+    z_score_threshold: 2.0
+    iqr_multiplier: 1.5
+    
+  threshold_detector:
+    enabled: true
+    
+  pattern_detector:
+    enabled: true
+    window_size: 10
+
+  # 🤖 NOUVEAU: Validateur LLM (enrichit les anomalies avec intelligence)
+  llm_validator:
+    enabled: true
+    keep_all_anomalies: true  # Si false, filtre les faux positifs (en développement)
