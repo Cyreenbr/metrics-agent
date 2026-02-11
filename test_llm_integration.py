@@ -9,6 +9,9 @@ Usage:
 import os
 import sys
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration test
 print("🧪 Test d'intégration LLM Metrics Agent")
