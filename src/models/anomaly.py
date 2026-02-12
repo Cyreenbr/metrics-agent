@@ -72,10 +72,11 @@ class Anomaly:
     description: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
     labels: Dict[str, str] = field(default_factory=dict)
-    
     anomaly_id: str = field(default_factory=lambda: str(uuid4()))
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
+    llm_validated: bool = False
+    llm_status: Optional[str] = None
 
     def __post_init__(self):
         """Validation après initialisation."""
@@ -122,10 +123,9 @@ class Anomaly:
     def from_dict(cls, data: Dict[str, Any]) -> 'Anomaly':
         """
         Crée une anomalie depuis un dictionnaire.
-        
+        Ignore les clés inconnues comme 'deviation_percent'.
         Args:
             data: Dictionnaire contenant les données
-            
         Returns:
             Instance d'Anomaly
         """
@@ -133,7 +133,14 @@ class Anomaly:
         data['anomaly_type'] = AnomalyType(data['anomaly_type'])
         data['severity'] = Severity(data['severity'])
         data['timestamp'] = datetime.fromisoformat(data['timestamp'])
-        return cls(**data)
+        # Remove keys not in Anomaly __init__
+        allowed_keys = {
+            'metric_name', 'anomaly_type', 'severity', 'timestamp', 'value', 'detector_name',
+            'confidence', 'expected_value', 'description', 'metadata', 'labels',
+            'anomaly_id', 'start_time', 'end_time'
+        }
+        filtered = {k: v for k, v in data.items() if k in allowed_keys}
+        return cls(**filtered)
     
     def __repr__(self) -> str:
         return (f"Anomaly(metric={self.metric_name}, "
@@ -148,7 +155,7 @@ class Anomaly:
             self.detector_name
         )
 
-        return {
+        result = {
             "anomaly_id": self.anomaly_id,
             "source": "metrics",
             "metric_name": self.metric_name,
@@ -169,3 +176,14 @@ class Anomaly:
             },
             "suggested_category": DETECTOR_TO_CATEGORY.get(detector, "unknown")
         }
+        # Add LLM fields if present
+        if hasattr(self, 'llm_analysis') and self.llm_analysis is not None:
+            result["llm_analysis"] = self.llm_analysis
+        if hasattr(self, 'llm_status') and self.llm_status is not None:
+            result["llm_status"] = self.llm_status
+        if hasattr(self, 'llm_validated'):
+            result["llm_validated"] = self.llm_validated
+        # Also check metadata for llm_analysis if not set directly
+        if "llm_analysis" not in result and self.metadata.get("llm_analysis"):
+            result["llm_analysis"] = self.metadata["llm_analysis"]
+        return result

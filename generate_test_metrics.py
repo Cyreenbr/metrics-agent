@@ -3,7 +3,7 @@
 Script pour générer des métriques de test via Pushgateway.
 
 Usage:
-    python3 generate_test_metrics.py
+    python generate_test_metrics.py
     
 Ce script crée des métriques artificielles avec des anomalies pour tester l'agent.
 """

@@ -13,7 +13,7 @@ from typing import List, Optional, Dict, Any
 from .base_detector import BaseDetector
 from ..models.metric import Metric
 from ..models.anomaly import Anomaly, Severity
-from ..utils.llm_client import get_llm_client
+from ..utils.llm_client import get_llm_client, RateLimitError
 from ..utils.logger import get_logger
 
 logger = get_logger()
@@ -101,22 +101,35 @@ class LLMValidator(BaseDetector):
             try:
                 # Convertir en dict
                 anomaly_dict = anomaly.to_dict() if hasattr(anomaly, 'to_dict') else anomaly
-                
                 # Valider avec LLM
-                llm_analysis = self.llm_client.validate_anomaly(anomaly_dict)
-                
-                # Enrichir l'anomalie
-                enriched = {
-                    **anomaly_dict,
-                    'llm_validation': llm_analysis.get('llm_validation'),
-                    'llm_analysis': llm_analysis.get('llm_analysis'),
-                    'llm_model': llm_analysis.get('llm_model', 'mixtral-8x7b-32768')
-                }
-                
+                try:
+                    llm_analysis = self.llm_client.validate_anomaly(anomaly_dict)
+                    # Enrichir l'anomalie
+                    enriched = {
+                        **anomaly_dict,
+                        'llm_validation': llm_analysis.get('llm_validation'),
+                        'llm_analysis': llm_analysis.get('llm_analysis'),
+                        'llm_model': llm_analysis.get('llm_model', 'mixtral-8x7b-32768'),
+                        'llm_validated': True,
+                        'llm_status': 'ok'
+                    }
+                except RateLimitError as re:
+                    logger.warning(f"LLM skipped due to rate limit: {re}")
+                    enriched = {
+                        **anomaly_dict,
+                        'llm_validated': False,
+                        'llm_status': 'rate_limited'
+                    }
+                except Exception as e:
+                    logger.error(f"LLM validation error: {e}")
+                    enriched = {
+                        **anomaly_dict,
+                        'llm_validated': False,
+                        'llm_status': 'error'
+                    }
                 # Décider si on garde l'anomalie
                 if keep_all or self._should_keep_anomaly(enriched):
                     validated_anomalies.append(enriched)
-                    
             except Exception as e:
                 logger.error(f"Error validating anomaly: {e}")
                 if keep_all:

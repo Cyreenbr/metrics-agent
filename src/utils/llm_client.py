@@ -1,3 +1,5 @@
+class RateLimitError(Exception):
+    pass
 from typing import Optional, Dict, Any
 import os
 from ..utils.logger import get_logger
@@ -12,7 +14,7 @@ class LLMClient:
     """
 
     # Modèle par défaut
-    DEFAULT_MODEL = "openai/gpt-oss-120b"
+    DEFAULT_MODEL = "llama-3.3-70b-versatile"
     FALLBACK_MODEL = "openai/gpt-oss-120b"  
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
@@ -51,6 +53,10 @@ class LLMClient:
         try:
             return self._call_model(prompt, self.model)
         except Exception as e:
+            # Rate limit error handling
+            if ("rate limit" in str(e).lower() or "429" in str(e)):
+                logger.warning(f"LLM rate limit reached: {e}")
+                raise RateLimitError(str(e))
             # Si modèle décommissionné ou non trouvé, bascule sur fallback
             if "model_decommissioned" in str(e) or "model_not_found" in str(e):
                 logger.warning(
